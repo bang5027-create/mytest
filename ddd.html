@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>반려동물 정보</title>
+
+<style>
+body {
+    margin:0;
+    font-family: 'Pretendard', sans-serif;
+    background: #f2f4f8;
+}
+
+.container {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.card {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+}
+
+.profile {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 15px;
+    border: 4px solid #eee;
+}
+
+.name {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.desc {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.btn {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    margin-top: 10px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: white;
+    font-size: 17px;
+}
+
+.call { background: #ff6b6b; }
+.sms { background: #4dabf7; }
+.loc { background: #51cf66; }
+
+.footer {
+    margin-top: 20px;
+    font-size: 13px;
+    color: #aaa;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+<div class="card">
+
+<img id="petImage" class="profile" src="https://via.placeholder.com/120">
+
+<div id="petName" class="name">불러오는 중...</div>
+<div id="message" class="desc">잠시만 기다려주세요</div>
+
+<a id="callBtn" class="btn call">📞 전화하기</a>
+<a id="smsBtn" class="btn sms">💬 문자하기</a>
+<a href="#" onclick="sendLocation()" class="btn loc">📍 내 위치 보내기</a>
+
+<div class="footer">QR 보호 서비스</div>
+
+</div>
+</div>
+
+<script>
+
+// 👉 구글 시트 CSV 링크
+const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRruzFHcfpnhWY4sS9bocW-HJ3QUanGDAEIa6AEAs1WdRrPCuiNIKnZTIXFBnVAV5Hk49NcByCdpAym/pubhtml";
+
+// URL에서 ID 가져오기
+const urlParams = new URLSearchParams(window.location.search);
+const userId = urlParams.get("id");
+
+// 데이터 불러오기
+fetch(sheetURL)
+.then(res => res.text())
+.then(data => {
+    const rows = data.split("\n").slice(1);
+
+    let found = false;
+
+    rows.forEach(row => {
+        const cols = row.split(",");
+
+        const id = cols[0].trim();
+        const name = cols[1].trim();
+        const phone = cols[2].trim();
+        const image = cols[3]?.trim(); // 이미지 URL 추가
+
+        if (id === userId) {
+            found = true;
+
+            document.getElementById("petName").innerText = name;
+            document.getElementById("message").innerText = "이 아이를 보호 중입니다";
+
+            document.getElementById("callBtn").href = `tel:${phone}`;
+            document.getElementById("smsBtn").href = `sms:${phone}`;
+
+            if (image) {
+                document.getElementById("petImage").src = image;
+            }
+        }
+    });
+
+    if (!found) {
+        document.getElementById("petName").innerText = "정보 없음";
+        document.getElementById("message").innerText = "등록되지 않은 QR입니다";
+    }
+});
+
+
+// 📍 위치 전송 기능
+function sendLocation() {
+    if (!navigator.geolocation) {
+        alert("위치 기능을 지원하지 않습니다.");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(position => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        const mapLink = `https://maps.google.com/?q=${lat},${lng}`;
+
+        alert("위치가 문자로 전송됩니다.");
+
+        // 문자로 위치 보내기
+        document.getElementById("smsBtn").href =
+            `sms:?body=발견 위치입니다 → ${mapLink}`;
+        
+        window.location.href = document.getElementById("smsBtn").href;
+    });
+}
+
+</script>
+
+</body>
+</html>

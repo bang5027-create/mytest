@@ -8,7 +8,7 @@
 <style>
 body {
     margin:0;
-    font-family: 'Pretendard', sans-serif;
+    font-family: sans-serif;
     background: #f2f4f8;
 }
 
@@ -31,7 +31,8 @@ body {
     height: 120px;
     border-radius: 50%;
     object-fit: cover;
-    margin-bottom: 15px;
+    margin: 0 auto 15px;
+    display: block;
     border: 4px solid #eee;
 }
 
@@ -48,8 +49,9 @@ body {
 .btn {
     display: block;
     width: 100%;
+    max-width: 300px;
+    margin: 10px auto;
     padding: 15px;
-    margin-top: 10px;
     border-radius: 12px;
     text-decoration: none;
     color: white;
@@ -81,7 +83,7 @@ body {
 
 <a id="callBtn" class="btn call">📞 전화하기</a>
 <a id="smsBtn" class="btn sms">💬 문자하기</a>
-<a href="#" onclick="sendLocation()" class="btn loc">📍 내 위치 보내기</a>
+<a id="locBtn" class="btn loc">📍 위치 보내기</a>
 
 <div class="footer">QR 보호 서비스</div>
 
@@ -90,12 +92,14 @@ body {
 
 <script>
 
-// 👉 구글 시트 CSV 링크
+// 👉 구글 시트 CSV 링크 넣기
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRruzFHcfpnhWY4sS9bocW-HJ3QUanGDAEIa6AEAs1WdRrPCuiNIKnZTIXFBnVAV5Hk49NcByCdpAym/pub?output=csv";
 
 // URL에서 ID 가져오기
 const urlParams = new URLSearchParams(window.location.search);
 const userId = urlParams.get("id");
+
+let phoneNumber = "";
 
 // 데이터 불러오기
 fetch(sheetURL)
@@ -108,13 +112,14 @@ fetch(sheetURL)
     rows.forEach(row => {
         const cols = row.split(",");
 
-        const id = cols[0].trim();
-        const name = cols[1].trim();
-        const phone = cols[2].trim();
-        const image = cols[3]?.trim(); // 이미지 URL 추가
+        const id = cols[0]?.trim();
+        const name = cols[1]?.trim();
+        const phone = cols[2]?.trim();
+        const image = cols[3]?.trim();
 
         if (id === userId) {
             found = true;
+            phoneNumber = phone;
 
             document.getElementById("petName").innerText = name;
             document.getElementById("message").innerText = "이 아이를 보호 중입니다";
@@ -122,7 +127,7 @@ fetch(sheetURL)
             document.getElementById("callBtn").href = `tel:${phone}`;
             document.getElementById("smsBtn").href = `sms:${phone}`;
 
-            if (image) {
+            if (image && image.startsWith("http")) {
                 document.getElementById("petImage").src = image;
             }
         }
@@ -135,8 +140,14 @@ fetch(sheetURL)
 });
 
 
-// 📍 위치 전송 기능
-function sendLocation() {
+// 📍 위치 전송 (1번 클릭)
+document.getElementById("locBtn").onclick = function() {
+
+    if (!phoneNumber) {
+        alert("전화번호 정보가 없습니다.");
+        return;
+    }
+
     if (!navigator.geolocation) {
         alert("위치 기능을 지원하지 않습니다.");
         return;
@@ -148,15 +159,11 @@ function sendLocation() {
 
         const mapLink = `https://maps.google.com/?q=${lat},${lng}`;
 
-        alert("위치가 문자로 전송됩니다.");
-
-        // 문자로 위치 보내기
-        document.getElementById("smsBtn").href =
-            `sms:?body=발견 위치입니다 → ${mapLink}`;
-        
-        window.location.href = document.getElementById("smsBtn").href;
+        // 👉 바로 문자 연결
+        window.location.href =
+            `sms:${phoneNumber}?body=반려동물 발견 위치입니다 → ${mapLink}`;
     });
-}
+};
 
 </script>
 

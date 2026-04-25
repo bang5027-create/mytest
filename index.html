@@ -12,7 +12,7 @@ body {
     background: linear-gradient(180deg, #f5f5f7, #e5e7eb);
 }
 
-/* 중앙 정렬 */
+/* 중앙 */
 .container {
     max-width: 420px;
     margin: 0 auto;
@@ -27,11 +27,36 @@ body {
     padding: 30px 20px;
     text-align: center;
     box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-    transition: 0.3s;
 }
 
-.card:hover {
-    transform: translateY(-5px);
+/* 로딩 화면 */
+.loader {
+    text-align: center;
+    padding: 80px 0;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #ddd;
+    border-top: 4px solid #555;
+    border-radius: 50%;
+    margin: 0 auto 15px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
+
+/* 등장 애니메이션 */
+.fade-in {
+    animation: fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn {
+    from {opacity:0; transform:translateY(10px);}
+    to {opacity:1; transform:translateY(0);}
 }
 
 /* 프로필 */
@@ -49,17 +74,15 @@ body {
 .name {
     font-size: 26px;
     font-weight: 600;
-    letter-spacing: -0.5px;
 }
 
 /* 설명 */
 .desc {
     color: #666;
-    margin-top: 5px;
     margin-bottom: 25px;
 }
 
-/* 버튼 공통 */
+/* 버튼 */
 .btn {
     display: block;
     width: 85%;
@@ -70,37 +93,24 @@ body {
     text-decoration: none;
     color: white;
     font-size: 17px;
-    font-weight: 500;
     text-align: center;
     transition: 0.2s;
 }
 
-/* 버튼 효과 */
 .btn:active {
     transform: scale(0.96);
 }
 
-/* 색상 */
-.call {
-    background: linear-gradient(135deg, #ff6b6b, #ff8787);
-}
+.call { background: linear-gradient(135deg, #ff6b6b, #ff8787); }
+.sms { background: linear-gradient(135deg, #4dabf7, #74c0fc); }
+.loc { background: linear-gradient(135deg, #51cf66, #69db7c); }
 
-.sms {
-    background: linear-gradient(135deg, #4dabf7, #74c0fc);
-}
-
-.loc {
-    background: linear-gradient(135deg, #51cf66, #69db7c);
-}
-
-/* 푸터 */
 .footer {
     margin-top: 25px;
     font-size: 12px;
     color: #aaa;
 }
 </style>
-
 </head>
 
 <body>
@@ -108,10 +118,19 @@ body {
 <div class="container">
 <div class="card">
 
+<!-- 🔥 로딩 화면 -->
+<div id="loading" class="loader">
+    <div class="spinner"></div>
+    <div>정보 불러오는 중...</div>
+</div>
+
+<!-- 🔥 실제 콘텐츠 -->
+<div id="content" style="display:none">
+
 <img id="petImage" class="profile" src="https://via.placeholder.com/120">
 
-<div id="petName" class="name">불러오는 중...</div>
-<div id="message" class="desc">잠시만 기다려주세요</div>
+<div id="petName" class="name">이름</div>
+<div id="message" class="desc">설명</div>
 
 <a id="callBtn" class="btn call">📞 전화하기</a>
 <a id="smsBtn" class="btn sms">💬 문자하기</a>
@@ -120,7 +139,88 @@ body {
 <div class="footer">QR 보호 서비스</div>
 
 </div>
+
 </div>
+</div>
+
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "여기에",
+    authDomain: "여기에",
+    projectId: "여기에",
+    storageBucket: "여기에",
+    messagingSenderId: "여기에",
+    appId: "여기에"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const urlParams = new URLSearchParams(window.location.search);
+const userId = urlParams.get("id");
+
+let phoneNumber = "";
+
+const docRef = doc(db, "pets", userId);
+const docSnap = await getDoc(docRef);
+
+const loading = document.getElementById("loading");
+const content = document.getElementById("content");
+
+if (docSnap.exists()) {
+    const data = docSnap.data();
+
+    phoneNumber = data.phone;
+
+    document.getElementById("petName").innerText = data.name;
+    document.getElementById("message").innerText = "이 아이를 보호 중입니다";
+
+    document.getElementById("callBtn").href = `tel:${data.phone}`;
+    document.getElementById("smsBtn").href = `sms:${data.phone}`;
+
+    if (data.image) {
+        document.getElementById("petImage").src = data.image;
+    }
+
+} else {
+    document.getElementById("petName").innerText = "정보 없음";
+    document.getElementById("message").innerText = "등록되지 않은 QR입니다";
+}
+
+// 🔥 로딩 → 콘텐츠 전환
+loading.style.display = "none";
+content.style.display = "block";
+content.classList.add("fade-in");
+
+
+// 위치 전송
+window.sendLocation = function() {
+
+    if (!phoneNumber) {
+        alert("전화번호 정보 없음");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(position => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        const mapLink = `https://maps.google.com/?q=${lat},${lng}`;
+
+        window.location.href =
+            `sms:${phoneNumber}?body=반려동물 발견 위치 → ${mapLink}`;
+    });
+};
+
+</script>
+
+</body>
+</html>
 
 <script type="module">
 

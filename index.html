@@ -8,7 +8,7 @@
 <style>
 body {
     margin:0;
-    font-family: sans-serif;
+    font-family: 'Pretendard', sans-serif;
     background: #f2f4f8;
 }
 
@@ -31,8 +31,7 @@ body {
     height: 120px;
     border-radius: 50%;
     object-fit: cover;
-    margin: 0 auto 15px;
-    display: block;
+    margin-bottom: 15px;
     border: 4px solid #eee;
 }
 
@@ -49,9 +48,8 @@ body {
 .btn {
     display: block;
     width: 100%;
-    max-width: 300px;
-    margin: 10px auto;
     padding: 15px;
+    margin-top: 10px;
     border-radius: 12px;
     text-decoration: none;
     color: white;
@@ -83,73 +81,76 @@ body {
 
 <a id="callBtn" class="btn call">📞 전화하기</a>
 <a id="smsBtn" class="btn sms">💬 문자하기</a>
-<a id="locBtn" class="btn loc">📍 위치 보내기</a>
+<a href="#" onclick="sendLocation()" class="btn loc">📍 내 위치 보내기</a>
 
 <div class="footer">QR 보호 서비스</div>
 
 </div>
 </div>
 
-<script>
 
-// 👉 구글 시트 CSV 링크 넣기
-const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRruzFHcfpnhWY4sS9bocW-HJ3QUanGDAEIa6AEAs1WdRrPCuiNIKnZTIXFBnVAV5Hk49NcByCdpAym/pub?output=csv";
+<script type="module">
+
+// 🔥 Firebase SDK 불러오기
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// 🔥 Firebase 설정 (여기에 본인 값 넣기)
+const firebaseConfig = {
+    apiKey: "AIzaSyAYlcl5hR_pN_qtv--0xTRS7QWDk7rfL30",
+    authDomain: "finding-a-pet-a4259.firebaseapp.com",
+    projectId: "finding-a-pet-a4259",
+    storageBucket: "finding-a-pet-a4259.firebasestorage.app",
+    messagingSenderId: "160399998653",
+    appId: "1:160399998653:web:cfce5c2b1d2481c647c1d4",
+    //measurementId: "G-KZBS2TJEK2" 
+};
+
+// 초기화
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 // URL에서 ID 가져오기
 const urlParams = new URLSearchParams(window.location.search);
 const userId = urlParams.get("id");
 
+// 🔥 Firebase에서 데이터 가져오기
+const docRef = doc(db, "pets", userId);
+const docSnap = await getDoc(docRef);
+
 let phoneNumber = "";
 
-// 데이터 불러오기
-fetch(sheetURL)
-.then(res => res.text())
-.then(data => {
-    const rows = data.split("\n").slice(1);
+if (docSnap.exists()) {
+    const data = docSnap.data();
 
-    let found = false;
+    phoneNumber = data.phone;
 
-    rows.forEach(row => {
-        const cols = row.split(",");
+    document.getElementById("petName").innerText = data.name;
+    document.getElementById("message").innerText = "이 아이를 보호 중입니다";
 
-        const id = cols[0]?.trim();
-        const name = cols[1]?.trim();
-        const phone = cols[2]?.trim();
-        const image = cols[3]?.trim();
+    document.getElementById("callBtn").href = `tel:${data.phone}`;
+    document.getElementById("smsBtn").href = `sms:${data.phone}`;
 
-        if (id === userId) {
-            found = true;
-            phoneNumber = phone;
-
-            document.getElementById("petName").innerText = name;
-            document.getElementById("message").innerText = "이 아이를 보호 중입니다";
-
-            document.getElementById("callBtn").href = `tel:${phone}`;
-            document.getElementById("smsBtn").href = `sms:${phone}`;
-
-            if (image && image.startsWith("http")) {
-                document.getElementById("petImage").src = image;
-            }
-        }
-    });
-
-    if (!found) {
-        document.getElementById("petName").innerText = "정보 없음";
-        document.getElementById("message").innerText = "등록되지 않은 QR입니다";
+    if (data.image) {
+        document.getElementById("petImage").src = data.image;
     }
-});
+
+} else {
+    document.getElementById("petName").innerText = "정보 없음";
+    document.getElementById("message").innerText = "등록되지 않은 QR입니다";
+}
 
 
-// 📍 위치 전송 (1번 클릭)
-document.getElementById("locBtn").onclick = function() {
+// 📍 위치 전송 (개선 버전)
+window.sendLocation = function() {
 
     if (!phoneNumber) {
-        alert("전화번호 정보가 없습니다.");
+        alert("전화번호 정보 없음");
         return;
     }
 
     if (!navigator.geolocation) {
-        alert("위치 기능을 지원하지 않습니다.");
+        alert("위치 기능 지원 안됨");
         return;
     }
 
@@ -159,7 +160,6 @@ document.getElementById("locBtn").onclick = function() {
 
         const mapLink = `https://maps.google.com/?q=${lat},${lng}`;
 
-        // 👉 바로 문자 연결
         window.location.href =
             `sms:${phoneNumber}?body=반려동물 발견 위치입니다 → ${mapLink}`;
     });

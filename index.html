@@ -31,7 +31,8 @@ body {
     height: 120px;
     border-radius: 50%;
     object-fit: cover;
-    margin-bottom: 15px;
+    margin: 0 auto 15px; /* 🔥 중앙 */
+    display: block;
     border: 4px solid #eee;
 }
 
@@ -48,12 +49,14 @@ body {
 .btn {
     display: block;
     width: 80%;
+    max-width: 300px;
     padding: 15px;
-    margin-top: 15px auto;
+    margin: 15px auto; /* 🔥 핵심 수정 */
     border-radius: 12px;
     text-decoration: none;
     color: white;
     font-size: 18px;
+    text-align: center;
 }
 
 .call { background: #ff6b6b; }
@@ -87,7 +90,6 @@ body {
 
 </div>
 </div>
-
 
 <script type="module">
 
